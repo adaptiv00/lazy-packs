@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# Set an env var to see what's going on
+function debug() {
+  if [ "$DEBUG" == "yes" ]; then
+    echo "$1"
+  fi
+}
+
+# Wait for one URL to be up
+function wait_for() {
+  debug "Waiting for '$1'"
+  until $( curl --output /dev/null --silent --fail "$1" ); do
+    sleep 1
+  done
+}
+
+# Wait for all the arguments passed in to be up
+function wait_for_all() {
+  for URL in "$@"; do
+    wait_for "$URL"
+  done
+}
+
+function wait_for_empty_stack() {
+  debug "Waiting for Docker stack empty: '$1'"
+  (( count=$(docker stack services "$1" 2>/dev/null | wc -l | xargs) ))
+  until [ $count -eq 0 ]; do
+    sleep 1
+    (( count=$(docker stack services "$1" 2>/dev/null | wc -l | xargs) ))
+  done
+}

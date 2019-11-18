@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+{{ $topology := .topology -}}
+# Import utils
+. {{ $topology.config.deploy_folder }}/bin/__utils.sh
+
+FULL_ERASE=${FULL_ERASE:-"no"}
+STACK_NAMES=${STACK_NAMES:-"{{ .topology.stack_names | join " " }}"}
+DEPLOY_FOLDER=${DEPLOY_FOLDER:-""}
+
+if [ "yes" = "$FULL_ERASE" ]; then
+
+    for STACK in $STACK_NAMES; do
+      docker stack rm "$STACK" 2>/dev/null
+    done
+
+    for STACK in $STACK_NAMES; do
+      wait_for_empty_stack "$STACK"
+    done
+
+    # Give services a chance to shut down before pulling the rug
+    echo
+    echo "Waiting for services to be down..."
+    echo
+    sleep 11
+
+    # Erase everything except folders / files starting with '.'. Some folders such as .registry-mirror need to survive redeploys
+    echo
+    echo "Full erase, cleaning up all runtime folders except those starting with '.'"
+    echo
+    {{ range $topology.node_names }}
+    ssh {{ . }} 'ls -1 {{ $topology.config.runtime_folder }} | xargs -I {} sudo rm -Rf {{ $topology.config.runtime_folder }}/{}' &
+    {{- end }}
+
+    wait
+
+fi
+
+. {{ $topology.config.deploy_folder }}/bin/pre-deploy.sh
+
+if [ ! "yes" = "$FULL_ERASE" ]; then
+
+    for STACK in $STACK_NAMES; do
+      docker stack rm "$STACK" 2>/dev/null
+    done
+
+    for STACK in $STACK_NAMES; do
+      wait_for_empty_stack "$STACK"
+    done
+
+fi
+
+echo
+echo "Deploying..."
+echo
+
+for STACK in $STACK_NAMES; do
+  docker stack deploy "$STACK" -c "$DEPLOY_FOLDER/swarm/$STACK.yml"
+done
+
+. {{ $topology.config.deploy_folder }}/bin/post-deploy.sh

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Global pre-deploy
+
+{{ $topology := .topology -}}
+
+# Pull Docker images
+echo
+echo "Pulling Docker images..."
+echo
+{{- range $service := $topology.services }}
+echo "Pulling Docker images for: {{ $service.name }}"
+    {{- range .instances }}
+        {{- $node := .node -}}
+        {{- range $service.config | grep_key "docker_image" }}
+ssh {{ $node }} docker pull {{ . }} >/dev/null &
+        {{- end }}
+    {{- end }}
+wait
+{{ end }}
+echo
+
+echo "Creating runtime folders..."
+
+# Create folders
+{{ range $service := $topology.services -}}
+    {{ range .instances }}
+ssh {{ .node }} mkdir -p {{ $topology.config.runtime_folder }} \
+        {{- range $service.config | grep_key "runtime_folder" }}
+    {{ . }} \
+        {{- end }}
+    &
+    {{- end }}
+{{- end }}
+
+wait
+
+echo "Creating instance folders..."
+
+# Auto-magically copy config folders over, create declared instance folders
+{{ range $service := $topology.services }}
+    {{- range $instance := .instances }}
+ssh {{ $instance.node }} mkdir -p {{ $topology.config.runtime_folder }} \
+        {{- range $service.config | grep_key "instance_folder" }}
+    {{ $service.config.runtime_folder }}/{{ $instance.name }}/{{ . }} \
+        {{- end }}
+    &
+        {{- range $service.config | grep_key "runtime_config_folder" }}
+scp -q -r {{ $topology.config.deploy_folder }}/{{ $service.name }}/{{ . }} {{ $instance.node }}:{{ $service.config.runtime_folder }}/ &
+        {{- end }}
+    {{- end }}
+wait
+{{ end }}
+echo "All folders created."
+echo

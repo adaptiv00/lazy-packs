@@ -1,0 +1,27 @@
+
+    {{ .instance.name }}:
+        image: {{ .service.config.docker_image }}
+        environment:
+          KAFKA_BROKER_ID: {{ .instance.ID }}
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://{{ .instance.node }}:{{ .instance.ports | idx 0 }}
+          KAFKA_ZOOKEEPER_CONNECT: {{ .topology.zookeeper.instances | with_port 0 | join "," }}
+          KAFKA_HEAP_OPTS: >
+            -Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20
+            -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M
+            -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80
+        volumes:
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .instance.name }}/{{ .service.config.data_instance_folder }}
+            target: /var/lib/kafka/data
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .instance.name }}/{{ .service.config.secrets_instance_folder }}
+            target: /etc/kafka/secrets
+        deploy:
+          mode: replicated
+          replicas: 1
+          placement:
+            constraints:
+              - engine.labels.node-name == {{ .instance.node }}
+        networks:
+          - host_net
+

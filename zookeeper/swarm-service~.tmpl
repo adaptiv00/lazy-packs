@@ -1,0 +1,29 @@
+
+    {{ .instance.name }}:
+        image: {{ .service.config.docker_image }}
+        environment:
+          ZOOKEEPER_SERVER_ID: {{ .instance.ID }}
+          ZOOKEEPER_CLIENT_PORT: {{ .instance.ports | idx 0 }}
+          ZOOKEEPER_TICK_TIME: 2000
+          ZOOKEEPER_INIT_LIMIT: 5
+          ZOOKEEPER_SYNC_LIMIT: 2
+          ZOOKEEPER_SERVERS: {{ .topology.zookeeper.instances | with_2ports 1 2 | join ";" }}
+        volumes:
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .instance.name }}/{{ .service.config.data_instance_folder }}
+            target: /var/lib/zookeeper/data
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .instance.name }}/{{ .service.config.log_instance_folder }}
+            target: /var/lib/zookeeper/log
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .instance.name }}/{{ .service.config.secrets_instance_folder }}
+            target: /etc/zookeeper/secrets
+        deploy:
+          mode: replicated
+          replicas: 1
+          placement:
+            constraints:
+              - engine.labels.node-name == {{ .instance.node }}
+        networks:
+          - host_net
+

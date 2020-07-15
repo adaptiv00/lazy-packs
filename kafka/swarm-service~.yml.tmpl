@@ -5,6 +5,7 @@
           KAFKA_BROKER_ID: {{ .instance.ID }}
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://{{ .instance.node }}:{{ .instance.ports | idx 0 }}
           KAFKA_ZOOKEEPER_CONNECT: {{ .topology.zookeeper.instances | with_port 0 | join "," }}
+          KAFKA_JMX_PORT: {{ .service.config.jmx_port }}
           KAFKA_HEAP_OPTS: >
             -Xms1g -Xmx1g -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20
             -XX:InitiatingHeapOccupancyPercent=35 -XX:G1HeapRegionSize=16M

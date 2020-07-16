@@ -26,7 +26,7 @@ fi
 # Iterate and create connectors from all *-connector.json files in the service deployment folder
 
 DEPLOYMENT_FOLDER="{{ .topology.config.deploy_folder }}/{{ .service.name }}"
-CONNECTOR_FILES="$(ls -1 $DEPLOYMENT_FOLDER | xargs )"
+CONNECTOR_FILES="$(ls -1 $DEPLOYMENT_FOLDER | grep '-connector.json' | xargs -n 1000000 )"
 {{ $instance := .service.instances | idx 0 }}
 for connector_file in $CONNECTOR_FILES; do
     connector_name=${connector_file//-connector.json/}

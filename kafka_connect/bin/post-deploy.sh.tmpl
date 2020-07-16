@@ -1,0 +1,39 @@
+# Script that's going to be run pre deployment on the deployment node (1st node)
+# Make it idempotent
+# You can include SSH to other nodes, first node has key on each of them
+
+echo
+echo "Waiting for connect..."
+echo
+
+wait_for_all {{ .service.instances | http_with_port 0 | join " " }}
+
+TOPICS_TO_CREATE=$(echo "{{ .service.config.topics_to_create }}" | sed 's/,/ /g' | xargs)
+if [[ -n "$TOPICS_TO_CREATE" ]]; then
+    echo "Creating topics: $TOPICS_TO_CREATE"
+    docker pull {{ .service.config.docker_image }} &>/dev/null
+    topic=$(echo "$topic" | xargs) # xargs does a nice trim/strip empty space
+    for topic in $TOPICS_TO_CREATE;
+    do
+        docker run --net=host --rm {{ .service.config.docker_image }} kafka-topics --create --if-not-exists \
+          --topic "$topic" \
+          --partitions {{ .service.config.kafka_topic_partitions }} \
+          --replication-factor {{ .service.config.kafka_topic_replicas }} \
+          --zookeeper {{ .topology.zookeeper.instances | with_port 0 | join "," }}
+    done
+fi
+
+# Iterate and create connectors from all *-connector.json files in the service deployment folder
+
+DEPLOYMENT_FOLDER="{{ .topology.config.deploy_folder }}/{{ .service.name }}"
+CONNECTOR_FILES="$(ls -1 $DEPLOYMENT_FOLDER | xargs )"
+{{ $instance := .service.instances | idx 0 }}
+for connector_file in $CONNECTOR_FILES; do
+    connector_name=${connector_file//-connector.json/}
+    # delete if already there
+    curl -s -X DELETE 'http://{{ $instance.node }}:{{ $instance.ports | idx 0 }}/connectors/'$connector_name''
+    # create
+    curl -s -X POST -H "Content-Type: application/json" \
+      -d @"$DEPLOYMENT_FOLDER/$connector_file" \
+      'http://{{ $instance.node }}:{{ $instance.ports | idx 0 }}/connectors' | jq .
+done

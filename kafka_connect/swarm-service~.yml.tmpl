@@ -1,0 +1,25 @@
+
+    {{ .instance.name }}:
+        image: {{ .service.config.docker_image }}
+        environment:
+          CONNECT_GROUP_ID: {{ .service.config.group_id }}
+          CONNECT_REST_PORT: {{ .instance.ports | idx 0 }}
+          CONNECT_REST_ADVERTISED_HOST_NAME: {{ .instance.node }}
+          CONNECT_BOOTSTRAP_SERVERS: {{ .topology.kafka.instances | with_port 0 | join "," }}
+          CONNECT_CONFIG_STORAGE_TOPIC: {{ .service.config.group_id }}-config
+          CONNECT_OFFSET_STORAGE_TOPIC: {{ .service.config.group_id }}-offsets
+          CONNECT_STATUS_STORAGE_TOPIC: {{ .service.config.group_id }}-status
+          CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: {{ .topology.schema_registry.instances | http_with_port 0 | join "," }}
+          CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: {{ .topology.schema_registry.instances | http_with_port 0 | join "," }}
+          ENV_LAZY_PLACEHOLDER: "This gets replaced by all ENV_ prefixed properties defined in the service config"
+          KAFKA_HEAP_OPTS: >
+            {{ .service.config.heap_size_settings }}
+            {{ .service.config.gc_settings }}
+        deploy:
+          mode: replicated
+          replicas: 1
+          placement:
+            constraints:
+              - engine.labels.node-name == {{ .instance.node }}
+        networks:
+          - host_net

@@ -1,0 +1,13 @@
+
+    {{ .instance.name }}:
+        image: {{ .service.config.docker_image }}
+        environment:
+          ZK_HOSTS: {{ .topology.zookeeper.instances | with_port 0 | join "," }}
+        deploy:
+          mode: replicated
+          replicas: 1
+          placement:
+            constraints:
+              - engine.labels.node-name == {{ .instance.node }}
+        networks:
+          - host_net

@@ -1,0 +1,15 @@
+
+    {{ .instance.name }}:
+        image: {{ .service.config.docker_image }}
+        volumes:
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .service.config.runtime_config_folder }}/application.yml
+            target: /app/application.yml
+        deploy:
+          mode: replicated
+          replicas: 1
+          placement:
+            constraints:
+              - engine.labels.node-name == {{ .instance.node }}
+        networks:
+          - host_net

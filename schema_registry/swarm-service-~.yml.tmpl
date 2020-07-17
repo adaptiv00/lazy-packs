@@ -1,0 +1,20 @@
+
+    {{ .instance.name }}:
+        image: {{ .service.config.docker_image }}
+        environment:
+          SCHEMA_REGISTRY_HOST_NAME: {{ .instance.node }}
+          SCHEMA_REGISTRY_LISTENERS: http://{{ .instance.node }}:{{ .instance.ports | idx 0 }}
+          SCHEMA_REGISTRY_BOOTSTRAP_SERVERS: {{ .topology.kafka.instances | with_port 0 | join "," }}
+          SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: {{ .topology.zookeeper.instances | with_port 0 | join "," }}
+        volumes:
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .instance.name }}/{{ .service.config.secrets_instance_folder }}
+            target: /etc/schema-registry/secrets
+        deploy:
+          mode: replicated
+          replicas: 1
+          placement:
+            constraints:
+              - engine.labels.node-name == {{ .instance.node }}
+        networks:
+          - host_net

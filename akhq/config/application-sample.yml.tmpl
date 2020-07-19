@@ -1,0 +1,29 @@
+akhq:
+  server:
+    base-path: "" # if behind a reverse proxy, path to akhq without trailing slash (optional). Example: akhq is
+                  # behind a reverse proxy with url http://my-server/akhq, set base-path: "/akhq".
+                  # Not needed if you're behind a reverse proxy with subdomain http://akhq.my-server/
+    access-log: # Access log configuration (optional)
+      enabled: true # true by default
+      name: org.akhq.log.access # Logger name
+      format: "[Date: {}] [Duration: {} ms] [Url: {} {} {}] [Status: {}] [Ip: {}] [Length: {}] [Port: {}]" # Logger format
+
+  # default kafka properties for each clients, available for admin / producer / consumer (optional)
+  clients-defaults:
+    consumer:
+      properties:
+        isolation.level: read_committed
+
+  # list of kafka cluster available for akhq
+  # copy locally and uncomment / change as necessary
+  {{/* $connect0 := .topology.kafka_connect.instances | idx 0 */}}
+  {{/* $registry0 := .topology.schema_registry.instances | idx 0 */}}
+  connections:
+    tst: # url friendly name for the cluster (letter, number, _, -, ... dot are not allowed here)
+      properties: # standard kafka properties (optional)
+        bootstrap.servers: "{{ .topology.kafka.instances | with_port 0 | join "," }}"
+      schema-registry:
+        url: "http://{{/* $registry0.node }}:{{ $registry0.ports | idx 0 */}}"
+      connect:
+        - name: connect-voluble
+          url: "http://{{/* $connect0.node }}:{{ $connect0.ports | idx 0 */}}"

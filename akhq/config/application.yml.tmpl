@@ -15,14 +15,15 @@ akhq:
         isolation.level: read_committed
 
   # list of kafka cluster available for akhq
-  {{ $connect0 := .topology.kafka_connect.instances | idx 0 }}
-  {{ $registry0 := .topology.schema_registry.instances | idx 0 }}
+  # copy locally and uncomment / change as necessary
+  {{/* $connect0 := .topology.kafka_connect.instances | idx 0 */}}
+  {{/* $registry0 := .topology.schema_registry.instances | idx 0 */}}
   connections:
     tst: # url friendly name for the cluster (letter, number, _, -, ... dot are not allowed here)
       properties: # standard kafka properties (optional)
         bootstrap.servers: "{{ .topology.kafka.instances | with_port 0 | join "," }}"
       schema-registry:
-        url: "http://{{ $registry0.node }}:{{ $registry0.ports | idx 0 }}"
+        url: "http://{{/* $registry0.node }}:{{ $registry0.ports | idx 0 */}}"
       connect:
         - name: connect-voluble
-          url: "http://{{ $connect0.node }}:{{ $connect0.ports | idx 0 }}"
+          url: "http://{{/* $connect0.node }}:{{ $connect0.ports | idx 0 */}}"

@@ -3,7 +3,7 @@
 # You can include SSH to other nodes, first node has key on each of them
 
 echo
-echo "Waiting for connect..."
+echo "Waiting for connect ({{ .service.name }})..."
 echo
 
 wait_for_all {{ .service.instances | http_with_port 0 | join " " }}

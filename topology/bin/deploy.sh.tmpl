@@ -7,6 +7,9 @@
 FULL_ERASE=${FULL_ERASE:-"no"}
 STACK_NAMES=${STACK_NAMES:-"{{ .topology.stack_names | join " " }}"}
 DEPLOY_FOLDER=${DEPLOY_FOLDER:-""}
+# Docker stack rm returns immediately but services remain up a little longer
+# Use this to wait them to be truly down
+STACK_RM_WAIT_SECONDS=${STACK_RM_WAIT_SECONDS:-5}
 
 if [ "yes" = "$FULL_ERASE" ]; then
 
@@ -47,6 +50,8 @@ if [ ! "yes" = "$FULL_ERASE" ]; then
     for STACK in $STACK_NAMES; do
       wait_for_empty_stack "$STACK"
     done
+
+    sleep "$STACK_RM_WAIT_SECONDS"
 
 fi
 

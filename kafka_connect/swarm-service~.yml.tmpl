@@ -15,6 +15,10 @@
           KAFKA_HEAP_OPTS: >
             {{ .service.config.heap_size_settings }}
             {{ .service.config.gc_settings }}
+        volumes:
+          - type: bind
+            source: {{ .service.config.runtime_folder }}/{{ .service.config.runtime_config_folder }}
+            target: /mnt/connect
         deploy:
           mode: replicated
           replicas: 1
